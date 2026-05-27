@@ -1,0 +1,68 @@
+[
+  {
+    "title": "Floral Summer Top",
+    "size": "M",
+    "price": 150,
+    "image_url": "",
+    "status": "Available",
+    "stock": 1,
+    "_id": "mock_prod_001",
+    "createdAt": "2026-05-24T06:00:00.000Z",
+    "updatedAt": "2026-05-24T06:00:00.000Z"
+  },
+  {
+    "title": "Cotton Printed Nightie",
+    "size": "XL",
+    "price": 350,
+    "image_url": "",
+    "status": "Available",
+    "stock": 1,
+    "_id": "mock_prod_002",
+    "createdAt": "2026-05-24T06:01:00.000Z",
+    "updatedAt": "2026-05-24T06:01:00.000Z"
+  },
+  {
+    "title": "Designer Gown (Aari Work)",
+    "size": "L",
+    "price": 1800,
+    "image_url": "",
+    "status": "Available",
+    "stock": 1,
+    "_id": "mock_prod_003",
+    "createdAt": "2026-05-24T06:02:00.000Z",
+    "updatedAt": "2026-05-24T06:02:00.000Z"
+  },
+  {
+    "title": "Casual Short Top",
+    "size": "S",
+    "price": 150,
+    "image_url": "",
+    "status": "Sold_Out",
+    "stock": 0,
+    "_id": "mock_prod_004",
+    "createdAt": "2026-05-24T06:03:00.000Z",
+    "updatedAt": "2026-05-24T06:03:00.000Z"
+  },
+  {
+    "title": "Trendy Kurtis Drop",
+    "size": "XXL",
+    "price": 450,
+    "image_url": "",
+    "status": "Available",
+    "stock": 1,
+    "_id": "mock_prod_005",
+    "createdAt": "2026-05-24T06:04:00.000Z",
+    "updatedAt": "2026-05-24T06:04:00.000Z"
+  },
+  {
+    "title": "Chiffon Summer Gown",
+    "size": "M",
+    "price": 150,
+    "image_url": "",
+    "status": "Available",
+    "stock": 1,
+    "_id": "mock_prod_006",
+    "createdAt": "2026-05-24T06:05:00.000Z",
+    "updatedAt": "2026-05-24T06:05:00.000Z"
+  }
+]
