@@ -8,7 +8,7 @@ import UPICheckout from './components/UPICheckout';
 import AuthModal from './components/AuthModal';
 import Footer from './components/Footer';
 import { sampleCategories, aariCourseDetails } from './mockData';
-import { fetchLiveProducts } from './services/api';
+import { fetchLiveProducts, fetchCategories, fetchHeroSlides } from './services/api';
 import ProductListingPage from './components/ProductListingPage';
 import CustomGownPage from './components/CustomGownPage';
 import AariClassPage from './components/AariClassPage';
@@ -78,35 +78,42 @@ function App() {
     ]);
   };
 
-  // --- HERO CAROUSEL ROTATION STATE ---
+  // --- HERO CAROUSEL ROTATION STATE & CATEGORY IMAGES OVERRIDES STATE ---
   const [activeSlide, setActiveSlide] = useState(0);
-  const carouselSlides = [
+  
+  const defaultSlides = [
     {
       title: "புதிய நைட்டிகள் & டாப்ஸ் வருகை!",
       desc: "ஒவ்வொரு ஞாயிறும் மாலை 6 மணிக்கு. ஒரு டிசைனில் ஒரு ஆடை மட்டுமே!",
       badge: "முக்கிய அறிவிப்பு",
       btnText: "இப்போதே வாங்க",
-      tab: "shop"
+      tab: "shop",
+      image_url: ""
     },
     {
       title: "பிரீமியம் டிசைனர் கவுன்கள்",
       desc: "உங்களது சரியான உடல் அளவிற்கு ஏற்ப கச்சிதமாக தைத்து தரப்படும்.",
       badge: "தையல் கலை",
       btnText: "ஆர்டர் செய்ய",
-      tab: "stitching"
+      tab: "stitching",
+      image_url: ""
     },
     {
       title: "தொழில்முறை ஆரி எம்பிராய்டரி வகுப்பு",
       desc: "முன்பதிவு செய்ய மற்றும் புதிய பேட்ச் விவரங்களை வாட்ஸ்அப்பில் கேட்கவும்.",
       badge: "அட்மிஷன் ஓபன்",
       btnText: "விவரம் கேட்க",
-      tab: "classes"
+      tab: "classes",
+      image_url: ""
     }
   ];
 
+  const [carouselSlides, setCarouselSlides] = useState(defaultSlides);
+  const [categories, setCategories] = useState(sampleCategories);
+
   // Auto-rotate the promo slides every 4 seconds
   useEffect(() => {
-    if (currentTab !== 'shop') return;
+    if (currentTab !== 'shop' || carouselSlides.length === 0) return;
     const interval = setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % carouselSlides.length);
     }, 4000);
@@ -117,12 +124,39 @@ function App() {
   useEffect(() => {
     const getStoreInventory = async () => {
       setIsLoading(true);
-      const result = await fetchLiveProducts();
-      if (result.success) {
-        setLiveProducts(result.data);
+      
+      // Load products
+      const prodResult = await fetchLiveProducts();
+      if (prodResult.success) {
+        setLiveProducts(prodResult.data);
       } else {
         setLiveProducts([]);
       }
+
+      // Load category image overrides
+      try {
+        const catResult = await fetchCategories();
+        if (catResult.success && catResult.data && catResult.data.length > 0) {
+          const merged = sampleCategories.map(cat => {
+            const match = catResult.data.find(c => c.name === cat.name);
+            return match ? { ...cat, image_url: match.image_url } : cat;
+          });
+          setCategories(merged);
+        }
+      } catch (err) {
+        console.error("Error fetching dynamic categories:", err);
+      }
+
+      // Load dynamic slides
+      try {
+        const slideResult = await fetchHeroSlides();
+        if (slideResult.success && slideResult.data && slideResult.data.length > 0) {
+          setCarouselSlides(slideResult.data);
+        }
+      } catch (err) {
+        console.error("Error fetching dynamic slides:", err);
+      }
+
       setIsLoading(false);
     };
     getStoreInventory();
@@ -250,7 +284,7 @@ function App() {
                   {/* Render the full-width list filtering loop inside an isolated canvas stage page view */}
                   <ProductListingPage 
                     products={liveProducts} 
-                    categories={sampleCategories}
+                    categories={categories}
                     isLoading={isLoading}
                     searchQuery={searchQuery}
                     selectedCategoryProp={activeCategoryView.key} // Passes dynamic match key tag parameters down
@@ -277,7 +311,7 @@ function App() {
                   {/* --- STEP 3: INTERACTIVE HOME ROUNDELS (CLICK TO FILTER GENERATOR) --- */}
                   <div className="w-full space-y-2 text-center my-4 select-none">
                     <section className="flex gap-6 overflow-x-auto pb-4 justify-start sm:justify-center scrollbar-hide snap-x px-4">
-                      {sampleCategories.map((cat) => (
+                      {categories.map((cat) => (
                         <div 
                           key={cat.id || cat._id} 
                           onClick={() => setActiveCategoryView({ name: cat.name, key: getMatchKey(cat.name) })} // 🚀 REDIRECTS TRIGGER: Opens isolated canvas state page view instantly
@@ -285,7 +319,7 @@ function App() {
                         >
                           <div className="w-16 h-16 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-md overflow-hidden group-hover:border-teal-500 transition-all duration-200">
                             <img 
-                              src={`http://10.189.141.73:5000${cat.image_url || ''}`} 
+                              src={`${BASE_URL}${cat.image_url || ''}`} 
                               alt={cat.name} 
                               className="w-full h-full object-cover transform group-hover:scale-105 transition"
                               onError={(e) => {
@@ -301,34 +335,42 @@ function App() {
                   </div>
 
                   {/* --- STEP 4: DESIGN-OPTIMIZED TWO-COLUMN HERO CAROUSEL BANNER --- */}
-                  <section className="bg-gradient-to-br from-sky-950 via-slate-950 to-black text-white rounded-3xl p-8 md:p-10 shadow-lg relative overflow-hidden min-h-[200px] flex flex-row items-center justify-between gap-8 border border-sky-900 my-6">
+                  {/* --- STEP 4: DESIGN-OPTIMIZED TWO-COLUMN HERO CAROUSEL BANNER --- */}
+                  <section 
+                    className="bg-gradient-to-br from-sky-950 via-slate-950 to-black text-white rounded-3xl p-8 md:p-10 shadow-lg relative overflow-hidden min-h-[200px] flex flex-row items-center justify-between gap-8 border border-sky-900 my-6"
+                    style={carouselSlides[activeSlide]?.image_url ? {
+                      backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.7)), url(${BASE_URL}${carouselSlides[activeSlide].image_url})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center'
+                    } : {}}
+                  >
                     
                     {/* Left Side Layout: Maximized Content Width to prevent awkward text wrapping on desktop */}
                     <div className="max-w-2xl space-y-3 relative z-10 text-left flex-1">
                       <span className="bg-sky-900 bg-opacity-70 text-yellow-300 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-md border border-sky-800 inline-block font-sans">
-                        ⚡ {carouselSlides[activeSlide].badge}
+                        ⚡ {carouselSlides[activeSlide]?.badge}
                       </span>
                       <h2 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight transition-transform duration-300">
-                        {carouselSlides[activeSlide].title}
+                        {carouselSlides[activeSlide]?.title}
                       </h2>
                       <p className="text-sky-100 text-xs sm:text-sm font-semibold opacity-90 tracking-wide max-w-xl">
-                        {carouselSlides[activeSlide].desc}
+                        {carouselSlides[activeSlide]?.desc}
                       </p>
                       <div className="pt-2">
                         <button 
-                          onClick={() => setCurrentTab(carouselSlides[activeSlide].tab)}
+                          onClick={() => setCurrentTab(carouselSlides[activeSlide]?.tab || 'shop')}
                           className="px-6 py-2.5 bg-sky-400 hover:bg-sky-500 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all transform hover:scale-105 active:scale-95 uppercase tracking-wider"
                         >
-                          {carouselSlides[activeSlide].btnText}
+                          {carouselSlides[activeSlide]?.btnText}
                         </button>
                       </div>
                     </div>
 
                     {/* Right Side Layout: Pinned Icon Container keeps its dimensions perfectly */}
                     <div className="relative z-10 w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 bg-white bg-opacity-5 rounded-2xl border border-white border-opacity-10 flex items-center justify-center text-5xl shadow-inner backdrop-blur-sm hidden sm:flex select-none">
-                      {carouselSlides[activeSlide].tab === 'shop' && '👚'}
-                      {carouselSlides[activeSlide].tab === 'stitching' && '💃'}
-                      {carouselSlides[activeSlide].tab === 'classes' && '🪡'}
+                      {carouselSlides[activeSlide]?.tab === 'shop' && '👚'}
+                      {carouselSlides[activeSlide]?.tab === 'stitching' && '💃'}
+                      {carouselSlides[activeSlide]?.tab === 'classes' && '🪡'}
                     </div>
 
                     {/* Sliding Pagination Dots Indicator Tracks */}
@@ -342,7 +384,7 @@ function App() {
                   {/* --- CRITICAL ARCHITECTURE UPDATE: LOAD TRUE PLP INTERFACES --- */}
                   <ProductListingPage 
                     products={liveProducts} 
-                    categories={sampleCategories}
+                    categories={categories}
                     isLoading={isLoading}
                     searchQuery={searchQuery}
                     selectedCategoryProp="ALL" // Home list shows everything standardly

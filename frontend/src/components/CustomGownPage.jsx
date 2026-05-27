@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, Scissors, Upload, Ruler, Phone, CheckCircle, ZoomIn, ChevronDown } from 'lucide-react';
 import { customGownPortfolio } from '../mockData';
+import { fetchPortfolioItems } from '../services/api';
+
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 export default function CustomGownPage() {
   const [filterType, setFilterType] = useState('ALL');
@@ -16,6 +19,24 @@ export default function CustomGownPage() {
   const [isApparelOpen, setIsApparelOpen] = useState(false);
   const [isEmbroideryOpen, setIsEmbroideryOpen] = useState(false);
 
+  // Dynamic portfolio database items state
+  const [portfolio, setPortfolio] = useState(customGownPortfolio);
+
+  useEffect(() => {
+    const loadGowns = async () => {
+      try {
+        const res = await fetchPortfolioItems();
+        if (res.success && res.data && res.data.length > 0) {
+          setPortfolio(res.data);
+        }
+      } catch (err) {
+        console.error("Error loading gowns portfolio:", err);
+      }
+    };
+    loadGowns();
+  }, []);
+
+
   // Translated mapping objects for high-visibility UI selection text strings
   const apparelLabels = {
     "Long Frock / Anarkali Gown": "லாங் பிராக் / அனார்கலி கவுன் (Long Frock / Gown)",
@@ -30,8 +51,8 @@ export default function CustomGownPage() {
   };
 
   const filteredItems = filterType === 'ALL' 
-    ? customGownPortfolio 
-    : customGownPortfolio.filter(item => item.type === filterType);
+    ? portfolio 
+    : portfolio.filter(item => item.type === filterType);
 
   const handleWhatsAppOrderSubmit = () => {
     // 🚀 FIXED: Point directly to your active business phone number
@@ -105,11 +126,15 @@ export default function CustomGownPage() {
         {/* GALLERY CARDS GRID LOOP (Enlarged Card Contents) */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
           {filteredItems.map((item) => (
-            <div key={item.id} className="bg-white rounded-2xl border-2 border-gray-100 p-4 flex flex-col justify-between hover:shadow-lg hover:border-teal-200 transition duration-200">
+            <div key={item._id || item.id} className="bg-white rounded-2xl border-2 border-gray-100 p-4 flex flex-col justify-between hover:shadow-lg hover:border-teal-200 transition duration-200">
               
               {/* Large Stage Image Box */}
               <div className="aspect-square bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center text-5xl shadow-inner relative overflow-hidden">
-                <span>{item.type === 'SIMPLE' ? '👗' : '👸'}</span>
+                {item.image_url ? (
+                  <img src={`${BASE_URL}${item.image_url}`} alt={item.title} className="w-full h-full object-cover" />
+                ) : (
+                  <span>{item.type === 'SIMPLE' ? '👗' : '👸'}</span>
+                )}
               </div>
               
               {/* Wording Content Info Block (Enlarged with increased line-height spacing) */}
