@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Heart, X, ShoppingCart, ShieldCheck, Zap, ChevronLeft, ChevronRight, Maximize2, SlidersHorizontal } from 'lucide-react';
 import { sampleProducts } from '../mockData';
 
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 export default function ProductListingPage({ products, categories = [], isLoading, searchQuery, selectedCategoryProp, onAddToCart, onBuyNow }) {
   const [selectedSize, setSelectedSize] = useState('ALL');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
@@ -174,7 +176,7 @@ export default function ProductListingPage({ products, categories = [], isLoadin
                     
                     {product.image_url && !imgErrors[product._id || product.id] ? (
                       <img 
-                        src={`http://localhost:5000${product.image_url}`} 
+                        src={`${BASE_URL}${product.image_url}`} 
                         alt={product.title} 
                         className="w-full h-full object-cover animate-fade-in group-hover:scale-105 transition duration-200" 
                         onError={() => setImgErrors(prev => ({ ...prev, [product._id || product.id]: true }))}
@@ -277,7 +279,7 @@ export default function ProductListingPage({ products, categories = [], isLoadin
                   <div className="relative aspect-square bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden flex items-center justify-center text-8xl select-none group shadow-inner">
                     {selectedProduct.image_url && !imgErrors[selectedProduct._id || selectedProduct.id] ? (
                       <img 
-                        src={`http://localhost:5000${selectedProduct.image_url}`} 
+                        src={`${BASE_URL}${selectedProduct.image_url}`} 
                         alt={selectedProduct.title} 
                         className="w-full h-full object-cover transition duration-300 transform group-hover:scale-105" 
                         onError={() => setImgErrors(prev => ({ ...prev, [selectedProduct._id || selectedProduct.id]: true }))}
@@ -421,7 +423,7 @@ export default function ProductListingPage({ products, categories = [], isLoadin
           <div className="w-full max-w-lg aspect-square bg-gray-900 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-800">
             {selectedProduct.image_url && !imgErrors[selectedProduct._id || selectedProduct.id] ? (
               <img 
-                src={`http://localhost:5000${selectedProduct.image_url}`} 
+                src={`${BASE_URL}${selectedProduct.image_url}`} 
                 alt={selectedProduct.title} 
                 className="w-full h-full object-contain" 
               />

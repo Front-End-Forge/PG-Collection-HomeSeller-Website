@@ -1,8 +1,9 @@
 // frontend/src/services/api.js
 import axios from 'axios';
 
-// Set up the base connector pointing directly to your local backend server
-const API_URL = 'http://localhost:5000/api/admin';
+// Set up the base connector dynamically pointing to your live Render server or local computer
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = `${BASE_URL}/api/admin`;
 
 export const fetchLiveProducts = async () => {
     try {

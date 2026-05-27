@@ -14,6 +14,8 @@ import CustomGownPage from './components/CustomGownPage';
 import AariClassPage from './components/AariClassPage';
 import { BookOpen, CheckCircle, Scissors, Phone, Lock, Eye, EyeOff, Sparkles, GraduationCap, ArrowLeft } from 'lucide-react';
 
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 function App() {
   const navigate = useNavigate();
   const [currentTab, setCurrentTab]     = useState('shop');
@@ -379,7 +381,7 @@ function App() {
                         <div className="absolute inset-0 bg-gradient-to-t from-transparent md:bg-gradient-to-r md:from-slate-900 md:via-transparent md:to-transparent z-10"></div>
                         
                         <img 
-                          src="http://localhost:5000/uploads/stitching-portfolio-banner.jpg" // உங்கள் லைவ் பேக்கெண்ட் இமேஜ் பாத்
+                          src={`${BASE_URL}/uploads/stitching-portfolio-banner.jpg`} // உங்கள் லைவ் பேக்கெண்ட் இமேஜ் பாத்
                           alt="Custom stitched ethnic long frock gown sample by PG Collection" 
                           className="w-full h-full object-cover object-top transform group-hover:scale-105 transition-transform duration-500"
                           onError={(e) => {
