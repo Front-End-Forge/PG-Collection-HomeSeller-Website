@@ -457,12 +457,11 @@ function App() {
                         <div className="absolute inset-0 bg-gradient-to-t from-transparent md:bg-gradient-to-r md:from-slate-900 md:via-transparent md:to-transparent z-10"></div>
                         
                         <img 
-                          src={`${BASE_URL}/uploads/stitching-portfolio-banner.jpg`} // உங்கள் லைவ் பேக்கெண்ட் இமேஜ் பாத்
+                          src="/slide2.jpg"
                           alt="Custom stitched ethnic long frock gown sample by PG Collection" 
                           loading="lazy"
                           className="w-full h-full object-cover object-top transform group-hover:scale-105 transition-transform duration-500"
                           onError={(e) => {
-                            // சேஃப்டி ஃபால்பேக்: இமேஜ் லோடாவதில் சிக்கல் இருந்தால் எமோஜி காண்பிக்கும்
                             e.target.style.display = 'none';
                             e.target.parentNode.innerHTML = `<div class="w-full h-full flex items-center justify-center text-5xl bg-slate-950">💃</div>`;
                           }}
