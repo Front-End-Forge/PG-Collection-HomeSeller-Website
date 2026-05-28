@@ -457,7 +457,7 @@ function App() {
                         <div className="absolute inset-0 bg-gradient-to-t from-transparent md:bg-gradient-to-r md:from-slate-900 md:via-transparent md:to-transparent z-10"></div>
                         
                         <img 
-                          src="/slide2.jpg"
+                          src="/custom-gown-card.jpg"
                           alt="Custom stitched ethnic long frock gown sample by PG Collection" 
                           loading="lazy"
                           className="w-full h-full object-cover object-top transform group-hover:scale-105 transition-transform duration-500"
