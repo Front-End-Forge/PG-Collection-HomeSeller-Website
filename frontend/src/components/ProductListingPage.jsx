@@ -17,7 +17,7 @@ export default function ProductListingPage({ products, categories = [], isLoadin
   const [activeImgIndex, setActiveImgIndex] = useState(0); // Tracks multi-image thumbs
   const [isZoomOpen, setIsZoomOpen] = useState(false);       // Enlarged lightbox overlay
 
-  const activeProducts = products && products.length > 0 ? products : sampleProducts;
+  const activeProducts = products && products.length > 0 ? products : [];
 
   // Keep the selectedProduct details updated if the products array changes in the background (e.g., real-time sold out status or edits)
   React.useEffect(() => {

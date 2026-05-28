@@ -58,10 +58,7 @@ function App() {
   const [authenticatedUser, setAuthenticatedUser] = useState(null);
 
   // --- CENTRAL SOURCE OF TRUTH FOR THE CART ---
-  const [cartItems, setCartItems] = useState([
-    { id: 'PRD_001', title: 'Floral Summer Top', size: 'M', price: 150 },
-    { id: 'PRD_002', title: 'Cotton Printed Nightie', size: 'XL', price: 350 }
-  ]);
+  const [cartItems, setCartItems] = useState([]);
 
   const handleGlobalRemoveItem = (itemId) => {
     setCartItems(prevItems => prevItems.filter(item => item.id !== itemId));

@@ -20,7 +20,7 @@ export default function CustomGownPage() {
   const [isEmbroideryOpen, setIsEmbroideryOpen] = useState(false);
 
   // Dynamic portfolio database items state
-  const [portfolio, setPortfolio] = useState(customGownPortfolio);
+  const [portfolio, setPortfolio] = useState([]);
 
   useEffect(() => {
     const loadGowns = async () => {
