@@ -16,37 +16,61 @@ const Enrollment = require('../models/Enrollment');
 const upload = multer({ dest: 'uploads/' });
 
 // POST /api/admin/add-product
-// Accepts a dress image, compresses it via sharp, saves product to DB
-router.post('/add-product', upload.single('dressImage'), async (req, res) => {
+// Accepts a dress image and optional additional images, compresses them via sharp, saves product to DB
+router.post('/add-product', upload.fields([
+    { name: 'dressImage', maxCount: 1 },
+    { name: 'additionalImages', maxCount: 8 }
+]), async (req, res) => {
     try {
-        const { title, size, price } = req.body;
+        const { title, size, price, fabricType, stitchingQuality, guaranteeNote } = req.body;
         
-        if (!title || !size || !price || !req.file) {
-            return res.status(400).json({ success: false, message: "Fill all parameters" });
+        const mainImageField = req.files && req.files['dressImage'] ? req.files['dressImage'][0] : null;
+        if (!title || !size || !price || !mainImageField) {
+            return res.status(400).json({ success: false, message: "Fill all parameters including primary image" });
         }
 
-        // Process mobile photo upload size restrictions using sharp 
+        // Process main photo upload using sharp
         const optimizedFileName = `optimized-${Date.now()}.jpg`;
         const outputPath = path.join(__dirname, '../uploads', optimizedFileName);
 
-        await sharp(req.file.path)
-            .resize(800, 800, { fit: 'cover' }) // Square grid sizing
-            .jpeg({ quality: 80 })              // File size compression
+        await sharp(mainImageField.path)
+            .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 80 })
             .toFile(outputPath);
 
-        // Remove the raw temp file left by multer
-        fs.unlinkSync(req.file.path);
+        fs.unlinkSync(mainImageField.path);
+        const image_url = `/uploads/${optimizedFileName}`;
+
+        // Process additional images if any
+        const additional_images = [];
+        const extraImagesFields = req.files && req.files['additionalImages'] ? req.files['additionalImages'] : [];
+        for (const file of extraImagesFields) {
+            const extraOptimizedName = `optimized-extra-${Date.now()}-${Math.floor(Math.random() * 1000)}.jpg`;
+            const extraOutputPath = path.join(__dirname, '../uploads', extraOptimizedName);
+
+            await sharp(file.path)
+                .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
+                .jpeg({ quality: 80 })
+                .toFile(extraOutputPath);
+
+            fs.unlinkSync(file.path);
+            additional_images.push(`/uploads/${extraOptimizedName}`);
+        }
 
         // Instantiate single-piece logic 
         const newProduct = new Product({
             title,
             size,
             price: parseFloat(price),
-            image_url: `/uploads/${optimizedFileName}`
+            image_url,
+            additional_images,
+            fabricType: fabricType || undefined,
+            stitchingQuality: stitchingQuality || undefined,
+            guaranteeNote: guaranteeNote || undefined
         });
 
         await newProduct.save();
-        res.status(201).json({ success: true, message: "Unique piece listed!" });
+        res.status(201).json({ success: true, message: "Unique piece listed!", data: newProduct });
 
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
@@ -58,8 +82,6 @@ router.get('/products', async (req, res) => {
     try {
         // Fetch all listed pieces from MongoDB, newest first
         const products = await Product.find().sort({ createdAt: -1 });
-        
-        // Return a clean structure so axios reads it correctly
         res.status(200).json({ success: true, data: products });
     } catch (err) {
         console.error("Backend Products Route Error:", err.message);
@@ -79,6 +101,129 @@ router.patch('/products/:id/status', async (req, res) => {
         );
         if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
         res.json({ success: true, data: product });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// DELETE /api/admin/products/:id
+// Physically unlinks optimized dress photo assets from server disk storage and deletes record from DB
+router.delete('/products/:id', async (req, res) => {
+    try {
+        const deletedProduct = await Product.findByIdAndDelete(req.params.id);
+        if (!deletedProduct) {
+            return res.status(404).json({ success: false, message: "Product not found" });
+        }
+        // Remove the primary image file from disk
+        if (deletedProduct.image_url) {
+            const filePath = path.join(__dirname, '..', deletedProduct.image_url);
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+        }
+        // Remove all additional images from disk
+        if (deletedProduct.additional_images && Array.isArray(deletedProduct.additional_images)) {
+            for (const imgUrl of deletedProduct.additional_images) {
+                const filePath = path.join(__dirname, '..', imgUrl);
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                }
+            }
+        }
+        res.json({ success: true, message: "Product listing deleted successfully!" });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// PUT /api/admin/products/:id
+// Update dress details and optional images
+router.put('/products/:id', upload.fields([
+    { name: 'dressImage', maxCount: 1 },
+    { name: 'additionalImages', maxCount: 8 }
+]), async (req, res) => {
+    try {
+        const { title, size, price, fabricType, stitchingQuality, guaranteeNote, existingAdditionalImages } = req.body;
+        
+        const product = await Product.findById(req.params.id);
+        if (!product) {
+            return res.status(404).json({ success: false, message: "Product not found" });
+        }
+
+        // Update fields if provided
+        if (title !== undefined) product.title = title;
+        if (size !== undefined) product.size = size;
+        if (price !== undefined) product.price = parseFloat(price);
+        if (fabricType !== undefined) product.fabricType = fabricType || undefined;
+        if (stitchingQuality !== undefined) product.stitchingQuality = stitchingQuality || undefined;
+        if (guaranteeNote !== undefined) product.guaranteeNote = guaranteeNote || undefined;
+
+        // Process primary image replacement if provided
+        const newPrimaryFile = req.files && req.files['dressImage'] ? req.files['dressImage'][0] : null;
+        if (newPrimaryFile) {
+            // Delete the old main image file if it exists
+            if (product.image_url) {
+                const oldFilePath = path.join(__dirname, '..', product.image_url);
+                if (fs.existsSync(oldFilePath)) {
+                    fs.unlinkSync(oldFilePath);
+                }
+            }
+
+            // Save the optimized new image file
+            const optimizedFileName = `optimized-${Date.now()}.jpg`;
+            const outputPath = path.join(__dirname, '../uploads', optimizedFileName);
+
+            await sharp(newPrimaryFile.path)
+                .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
+                .jpeg({ quality: 80 })
+                .toFile(outputPath);
+
+            fs.unlinkSync(newPrimaryFile.path);
+            product.image_url = `/uploads/${optimizedFileName}`;
+        }
+
+        // Handle existing additional images sync
+        let keepExtraImages = [];
+        if (existingAdditionalImages) {
+            try {
+                keepExtraImages = JSON.parse(existingAdditionalImages);
+            } catch (e) {
+                keepExtraImages = Array.isArray(existingAdditionalImages) ? existingAdditionalImages : [existingAdditionalImages];
+            }
+        } else {
+            // If empty string is passed (deleted all), keepExtraImages is empty
+            keepExtraImages = [];
+        }
+
+        // Physically delete any old extra images that are no longer kept
+        const currentExtraImages = product.additional_images || [];
+        for (const oldUrl of currentExtraImages) {
+            if (!keepExtraImages.includes(oldUrl)) {
+                const oldFilePath = path.join(__dirname, '..', oldUrl);
+                if (fs.existsSync(oldFilePath)) {
+                    fs.unlinkSync(oldFilePath);
+                }
+            }
+        }
+        product.additional_images = [...keepExtraImages];
+
+        // Process newly uploaded extra images if any
+        const newExtraFiles = req.files && req.files['additionalImages'] ? req.files['additionalImages'] : [];
+        for (const file of newExtraFiles) {
+            const extraOptimizedName = `optimized-extra-${Date.now()}-${Math.floor(Math.random() * 1000)}.jpg`;
+            const extraOutputPath = path.join(__dirname, '../uploads', extraOptimizedName);
+
+            await sharp(file.path)
+                .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
+                .jpeg({ quality: 80 })
+                .toFile(extraOutputPath);
+
+            fs.unlinkSync(file.path);
+            product.additional_images.push(`/uploads/${extraOptimizedName}`);
+        }
+
+        await product.save();
+        res.json({ success: true, message: "Product listing updated successfully!", data: product });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
@@ -145,7 +290,7 @@ router.post('/add-portfolio', upload.single('portfolioImage'), async (req, res) 
         const outputPath = path.join(__dirname, '../uploads', optimizedFileName);
 
         await sharp(req.file.path)
-            .resize(800, 800, { fit: 'cover' })
+            .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
             .jpeg({ quality: 80 })
             .toFile(outputPath);
 
@@ -168,7 +313,13 @@ router.post('/add-portfolio', upload.single('portfolioImage'), async (req, res) 
 // DELETE /api/admin/portfolio/:id -> Delete a portfolio item
 router.delete('/portfolio/:id', async (req, res) => {
     try {
-        await PortfolioItem.findByIdAndDelete(req.params.id);
+        const deletedItem = await PortfolioItem.findByIdAndDelete(req.params.id);
+        if (deletedItem && deletedItem.image_url) {
+            const filePath = path.join(__dirname, '..', deletedItem.image_url);
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+        }
         res.json({ success: true, message: "Portfolio item deleted" });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
@@ -237,8 +388,8 @@ router.get('/hero-slides', async (req, res) => {
 router.post('/add-hero-slide', upload.single('heroImage'), async (req, res) => {
     try {
         const { title, desc, badge, btnText, tab } = req.body;
-        if (!title || !desc || !req.file) {
-            return res.status(400).json({ success: false, message: "Fill all parameters" });
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: "Please select an image file" });
         }
 
         const optimizedFileName = `optimized-hero-${Date.now()}.jpg`;
@@ -252,10 +403,10 @@ router.post('/add-hero-slide', upload.single('heroImage'), async (req, res) => {
         fs.unlinkSync(req.file.path);
 
         const newSlide = new HeroBanner({
-            title,
-            desc,
-            badge: badge || 'முக்கிய அறிவிப்பு',
-            btnText: btnText || 'இப்போதே வாங்க',
+            title: title !== undefined ? title : '',
+            desc: desc !== undefined ? desc : '',
+            badge: badge !== undefined ? badge : '',
+            btnText: btnText !== undefined ? btnText : '',
             tab: tab || 'shop',
             image_url: `/uploads/${optimizedFileName}`
         });

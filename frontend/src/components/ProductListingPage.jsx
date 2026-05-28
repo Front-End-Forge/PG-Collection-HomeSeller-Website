@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Heart, X, ShoppingCart, ShieldCheck, Zap, ChevronLeft, ChevronRight, Maximize2, SlidersHorizontal } from 'lucide-react';
 import { sampleProducts } from '../mockData';
 
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const BASE_URL = process.env.REACT_APP_API_URL || `${window.location.protocol}//${window.location.hostname}:5000`;
 
 export default function ProductListingPage({ products, categories = [], isLoading, searchQuery, selectedCategoryProp, onAddToCart, onBuyNow }) {
   const [selectedSize, setSelectedSize] = useState('ALL');
@@ -19,13 +19,37 @@ export default function ProductListingPage({ products, categories = [], isLoadin
 
   const activeProducts = products && products.length > 0 ? products : sampleProducts;
 
+  // Keep the selectedProduct details updated if the products array changes in the background (e.g., real-time sold out status or edits)
+  React.useEffect(() => {
+    if (selectedProduct) {
+      const latest = activeProducts.find(p => (p._id || p.id) === (selectedProduct._id || selectedProduct.id));
+      if (latest && JSON.stringify(latest) !== JSON.stringify(selectedProduct)) {
+        setSelectedProduct(latest);
+      }
+    }
+  }, [activeProducts, selectedProduct]);
+
   // Simulates custom image galleries for front, back, and tape guidelines
   const getProductImageGallery = (product) => {
-    return [
-      { id: 'FRONT', label: '🎥 முன்பக்கம் (Front View)', view: product.price === 150 ? '👚' : '👗' },
-      { id: 'BACK', label: '👚 பின்பக்கம் (Back View)', view: '👘' },
-      { id: 'MEASURE', label: '📏 அளவு விவரங்கள் (Measurement Tape Guide)', view: '📐' }
-    ];
+    if (!product) return [];
+    const gallery = [];
+    if (product.image_url) {
+      gallery.push({ id: 'FRONT', label: '🎥 முன்பக்கம் (Front View)', url: product.image_url, view: product.price === 150 ? '👚' : '👗' });
+    }
+    if (product.additional_images && Array.isArray(product.additional_images)) {
+      product.additional_images.forEach((imgUrl, index) => {
+        gallery.push({ 
+          id: `EXTRA_${index}`, 
+          label: `🖼️ வியூ ${index + 2} (View ${index + 2})`, 
+          url: imgUrl, 
+          view: product.price === 150 ? '👚' : '👗' 
+        });
+      });
+    }
+    if (gallery.length === 0) {
+      gallery.push({ id: 'FRONT', label: '🎥 முன்பக்கம் (Front View)', view: product.price === 150 ? '👚' : '-[#e0f2fe]' });
+    }
+    return gallery;
   };
 
   // Filter strategy layout matching your Tamil sidebar selection configurations
@@ -163,12 +187,12 @@ export default function ProductListingPage({ products, categories = [], isLoadin
               const discountPercent = Math.round(((originalPrice - product.price) / originalPrice) * 100);
 
               return (
-                <div key={product._id || product.id} className="bg-white rounded-[24px] border border-gray-200 overflow-hidden shadow-sm flex flex-col justify-between p-4 relative group hover:shadow-md transition duration-200">
+                <div key={product._id || product.id} className="bg-white rounded-[24px] border border-gray-200 overflow-hidden shadow-sm flex flex-col justify-between p-0 relative group hover:shadow-md transition duration-200">
                   
                   {/* IMAGE HOVER TRIGGER PORT */}
                   <div 
                     onClick={() => { setSelectedProduct(product); setActiveImgIndex(0); }}
-                    className={`relative aspect-[3/4] bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-50 rounded-2xl border border-gray-100 overflow-hidden flex items-center justify-center cursor-pointer shadow-inner ${isSoldOut ? 'opacity-80' : ''}`}
+                    className={`relative aspect-[3/4] bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-50 rounded-t-[23px] overflow-hidden flex items-center justify-center cursor-pointer shadow-inner ${isSoldOut ? 'opacity-80' : ''}`}
                   >
                     <button onClick={(e) => e.stopPropagation()} className="absolute top-3 right-3 p-2 bg-white rounded-full text-gray-400 hover:text-red-500 shadow-sm z-10 transition duration-150 hover:scale-105 active:scale-95">
                       <Heart className="w-4 h-4" />
@@ -178,6 +202,7 @@ export default function ProductListingPage({ products, categories = [], isLoadin
                       <img 
                         src={`${BASE_URL}${product.image_url}`} 
                         alt={product.title} 
+                        loading="lazy"
                         className="w-full h-full object-cover animate-fade-in group-hover:scale-105 transition duration-200" 
                         onError={() => setImgErrors(prev => ({ ...prev, [product._id || product.id]: true }))}
                       />
@@ -187,11 +212,7 @@ export default function ProductListingPage({ products, categories = [], isLoadin
                       </span>
                     )}
 
-                    {product.status === 'Available' ? (
-                      <span className="absolute top-3 left-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-black text-[9px] uppercase px-2.5 py-1 rounded-full shadow-md animate-pulse z-10 tracking-wider">
-                        ⚡ 1 பீஸ் மட்டுமே!
-                      </span>
-                    ) : (
+                    {isSoldOut && (
                       <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center z-10">
                         <span className="bg-red-600 text-white text-[10px] font-black tracking-widest uppercase px-3 py-1.5 rounded-lg rotate-12 shadow-md">விற்றுவிட்டது</span>
                       </div>
@@ -199,7 +220,7 @@ export default function ProductListingPage({ products, categories = [], isLoadin
                   </div>
 
                   {/* CARD LABELS METRICS INFO */}
-                  <div className="mt-3 flex-1 flex flex-col justify-between">
+                  <div className="p-4 pt-3 flex-1 flex flex-col justify-between">
                     <div onClick={() => { setSelectedProduct(product); setActiveImgIndex(0); }} className="cursor-pointer space-y-1.5">
                       <h4 className="text-xs sm:text-sm font-bold text-gray-800 line-clamp-1 hover:text-sky-600 transition-colors capitalize leading-snug">{product.title}</h4>
                       
@@ -233,7 +254,6 @@ export default function ProductListingPage({ products, categories = [], isLoadin
                       </button>
                     </div>
                   </div>
-
                 </div>
               );
             })}
@@ -263,6 +283,7 @@ export default function ProductListingPage({ products, categories = [], isLoadin
                 </span>
                 <button 
                   onClick={() => setSelectedProduct(null)} 
+                  aria-label="நெருக்கமான (Close)"
                   className="p-2 text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-full transition active:scale-90"
                 >
                   <X className="w-4 h-4" />
@@ -277,55 +298,63 @@ export default function ProductListingPage({ products, categories = [], isLoadin
                   
                   {/* Main Portrait Swipe Frame Stage */}
                   <div className="relative aspect-square bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden flex items-center justify-center text-8xl select-none group shadow-inner">
-                    {selectedProduct.image_url && !imgErrors[selectedProduct._id || selectedProduct.id] ? (
+                    {getProductImageGallery(selectedProduct)[activeImgIndex]?.url && !imgErrors[`${selectedProduct._id || selectedProduct.id}-${activeImgIndex}`] ? (
                       <img 
-                        src={`${BASE_URL}${selectedProduct.image_url}`} 
+                        src={`${BASE_URL}${getProductImageGallery(selectedProduct)[activeImgIndex].url}`} 
                         alt={selectedProduct.title} 
-                        className="w-full h-full object-cover transition duration-300 transform group-hover:scale-105" 
-                        onError={() => setImgErrors(prev => ({ ...prev, [selectedProduct._id || selectedProduct.id]: true }))}
+                        className="w-full h-full object-contain transition duration-300 transform group-hover:scale-105 animate-fade-in" 
+                        onError={() => setImgErrors(prev => ({ ...prev, [`${selectedProduct._id || selectedProduct.id}-${activeImgIndex}`]: true }))}
                       />
                     ) : (
                       <span className="filter drop-shadow-md">
-                        {getProductImageGallery(selectedProduct)[activeImgIndex].view}
+                        {getProductImageGallery(selectedProduct)[activeImgIndex]?.view || '👗'}
                       </span>
                     )}
 
                     {/* Lightbox Zoom Indicator Trigger */}
-                    <button onClick={() => setIsZoomOpen(true)} className="absolute top-3 right-3 p-2 bg-white bg-opacity-90 rounded-xl shadow-md"><Maximize2 className="w-4 h-4 text-gray-700" /></button>
+                    <button onClick={() => setIsZoomOpen(true)} aria-label="முழுத்திரை பெரிதாக்கு (Zoom Fullscreen)" className="absolute top-3 right-3 p-2 bg-white bg-opacity-90 rounded-xl shadow-md"><Maximize2 className="w-4 h-4 text-gray-700" /></button>
 
                     {/* Slider Arrow Navigation Controls */}
-                    <button disabled={activeImgIndex === 0} onClick={() => setActiveImgIndex(p => p - 1)} className="absolute left-2 p-1.5 bg-white rounded-full text-gray-800 disabled:opacity-20 shadow"><ChevronLeft className="w-4 h-4" /></button>
-                    <button disabled={activeImgIndex === 2} onClick={() => setActiveImgIndex(p => p + 1)} className="absolute right-2 p-1.5 bg-white rounded-full text-gray-800 disabled:opacity-20 shadow"><ChevronRight className="w-4 h-4" /></button>
-
+                    <button disabled={activeImgIndex === 0 || getProductImageGallery(selectedProduct).length <= 1} onClick={() => setActiveImgIndex(p => p - 1)} aria-label="முந்தைய படம் (Previous Image)" className="absolute left-2 p-1.5 bg-white rounded-full text-gray-800 disabled:opacity-20 shadow"><ChevronLeft className="w-4 h-4" /></button>
+                    <button disabled={activeImgIndex >= getProductImageGallery(selectedProduct).length - 1 || getProductImageGallery(selectedProduct).length <= 1} onClick={() => setActiveImgIndex(p => p + 1)} aria-label="அடுத்த படம் (Next Image)" className="absolute right-2 p-1.5 bg-white rounded-full text-gray-800 disabled:opacity-20 shadow"><ChevronRight className="w-4 h-4" /></button>
+ 
                     <span className="absolute bottom-3 right-4 bg-black bg-opacity-70 text-white font-mono text-[10px] px-2.5 py-0.5 rounded-md font-black">
-                      {activeImgIndex + 1} / 3 வியூஸ்
+                      {activeImgIndex + 1} / {getProductImageGallery(selectedProduct).length} வியூஸ்
                     </span>
                   </div>
-
+ 
                   {/* Thumbnail Selection Buttons Row (Fully Standard Labels System) */}
-                  <div className="grid grid-cols-3 gap-3">
-                    {getProductImageGallery(selectedProduct).map((img, idx) => (
-                      <button
-                        key={img.id}
-                        onClick={() => setActiveImgIndex(idx)}
-                        className={`border-2 p-2 rounded-xl flex flex-col items-center justify-center transition-all ${
-                          activeImgIndex === idx 
-                            ? 'border-sky-600 bg-sky-50 ring-1 ring-sky-500 shadow-sm' 
-                            : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
-                        }`}
-                      >
-                        <span className="text-xl">{img.view}</span>
-                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-wide block mt-1 leading-none">
-                          {img.id === 'FRONT' ? 'FRONT' : img.id === 'BACK' ? 'BACK' : 'MEASURE'}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-
+                  {getProductImageGallery(selectedProduct).length > 1 && (
+                    <div className="grid grid-cols-3 gap-3">
+                      {getProductImageGallery(selectedProduct).map((img, idx) => (
+                        <button
+                          key={img.id}
+                          onClick={() => setActiveImgIndex(idx)}
+                          className={`border-2 p-2 rounded-xl flex flex-col items-center justify-center transition-all ${
+                            activeImgIndex === idx 
+                              ? 'border-sky-600 bg-sky-50 ring-1 ring-sky-500 shadow-sm' 
+                              : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
+                          }`}
+                        >
+                          {img.url ? (
+                            <img src={`${BASE_URL}${img.url}`} alt={img.id} className="w-8 h-8 object-cover rounded-md" />
+                          ) : (
+                            <span className="text-xl">{img.view}</span>
+                          )}
+                          <span className="text-[8px] font-black text-gray-400 uppercase tracking-wide block mt-1 leading-none">
+                            {img.id === 'FRONT' ? 'FRONT' : img.id === 'BACK' ? 'BACK' : img.id === 'MEASURE' ? 'MEASURE' : `VIEW ${idx + 1}`}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+ 
                   {/* Dynamic Current Display View Indicator Status Bar */}
-                  <div className="bg-sky-50 border border-sky-100 py-2 px-3 rounded-xl text-center text-[10px] font-black text-sky-800 uppercase tracking-wide shadow-sm">
-                    👀 தற்போதைய பார்வை: {getProductImageGallery(selectedProduct)[activeImgIndex].label}
-                  </div>
+                  {getProductImageGallery(selectedProduct).length > 1 && (
+                    <div className="bg-sky-50 border border-sky-100 py-2 px-3 rounded-xl text-center text-[10px] font-black text-sky-800 uppercase tracking-wide shadow-sm">
+                      👀 தற்போதைய பார்வை: {getProductImageGallery(selectedProduct)[activeImgIndex]?.label}
+                    </div>
+                  )}
                 </div>
 
                 {/* ==================== RIGHT COLUMN: SPECS, PRICING, & DESCRIPTIONS ==================== */}
@@ -335,36 +364,59 @@ export default function ProductListingPage({ products, categories = [], isLoadin
                     <h3 className="text-base sm:text-lg font-black text-gray-900 capitalize tracking-tight leading-tight">
                       {selectedProduct.title}
                     </h3>
-                    <div className="flex flex-wrap gap-2 pt-0.5">
-                      <span className="text-[10px] bg-sky-50 border border-sky-200 text-sky-800 font-black px-2 py-0.5 rounded-md uppercase">
-                        அளவு ஃபிட்: Size {selectedProduct.size}
-                      </span>
-                      <span className="text-[10px] bg-orange-50 border border-orange-200 text-orange-800 font-black px-2 py-0.5 rounded-md uppercase tracking-wide">
-                        இருப்பு: {selectedProduct.status === 'Available' ? 'உண்டு (Only 1)' : 'விற்றுவிட்டது'}
-                      </span>
-                    </div>
-                  </div>
+                    {(() => {
+                      const hasFabric = selectedProduct.fabricType && 
+                        selectedProduct.fabricType.trim() !== '' && 
+                        selectedProduct.fabricType !== 'உயர்தர தூய பருத்தி (Premium Export Cotton Pure Canvas Quality)';
 
-                  <div className="space-y-2">
-                    <span className="block text-[10px] uppercase text-gray-400 tracking-wider font-extrabold">
-                      ஆடை தையல் விவரக்குறிப்பு
-                    </span>
-                    <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3.5 text-xs text-gray-600 font-semibold space-y-2.5 leading-relaxed shadow-inner">
-                      <p className="flex items-start gap-2">
-                        <span className="text-sm leading-none">✨</span>
-                        <span>**ஆடை துணி வகை:** உயர்தர தூய பருத்தி (Premium Export Cotton Pure Canvas Quality).</span>
-                      </p>
-                      <p className="flex items-start gap-2">
-                        <span className="text-sm leading-none">🪡</span>
-                        <span>**தையல் வேலைப்பாடு:** கச்சிதமான இன்டர்லாக் தையல்களுடன் கூடிய மிக நேர்த்தியான ஹோம் பினிஷிங்.</span>
-                      </p>
-                      <p className="flex items-start gap-2">
-                        <span className="text-sm leading-none">💥</span>
-                        <span>**தனித்துவ உத்திரவாதம்:** இது ஒரு பிரத்யேக சிங்கிள்-பீஸ் ஆடை மட்டுமே! சேலத்தில் வேறு எங்கும் கிடைக்காது.</span>
-                      </p>
-                    </div>
-                  </div>
+                      const hasStitching = selectedProduct.stitchingQuality && 
+                        selectedProduct.stitchingQuality.trim() !== '' && 
+                        selectedProduct.stitchingQuality !== 'கச்சிதமான இன்டர்லாக் தையல்களுடன் கூடிய மிக நேர்த்தியான ஹோம் பினிஷிங்';
 
+                      const hasGuarantee = selectedProduct.guaranteeNote && 
+                        selectedProduct.guaranteeNote.trim() !== '' && 
+                        selectedProduct.guaranteeNote !== 'இது ஒரு பிரத்யேக சிங்கிள்-பீஸ் ஆடை மட்டுமே! சேலத்தில் வேறு எங்கும் கிடைக்காது';
+
+                      if (!hasFabric && !hasStitching && !hasGuarantee) return null;
+
+                      return (
+                        <div className="space-y-2 animate-fade-in">
+                          <span className="block text-[10px] uppercase text-gray-400 tracking-wider font-extrabold">
+                            ஆடை தையல் விவரக்குறிப்பு
+                          </span>
+                          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3.5 text-xs text-gray-600 font-semibold space-y-2.5 leading-relaxed shadow-inner">
+                            {hasFabric && (
+                              <p className="flex items-start gap-2">
+                                <span className="text-sm leading-none">✨</span>
+                                <span>
+                                  <strong>ஆடை துணி வகை:</strong>{' '}
+                                  {selectedProduct.fabricType}
+                                </span>
+                              </p>
+                            )}
+                            {hasStitching && (
+                              <p className="flex items-start gap-2">
+                                <span className="text-sm leading-none">🪡</span>
+                                <span>
+                                  <strong>தையல் வேலைப்பாடு:</strong>{' '}
+                                  {selectedProduct.stitchingQuality}
+                                </span>
+                              </p>
+                            )}
+                            {hasGuarantee && (
+                              <p className="flex items-start gap-2">
+                                <span className="text-sm leading-none">💥</span>
+                                <span>
+                                  <strong>தனித்துவ உத்திரவாதம்:</strong>{' '}
+                                  {selectedProduct.guaranteeNote}
+                                </span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
                   <div className="bg-gray-50 rounded-2xl border border-gray-200 p-3 flex flex-row items-center justify-between">
                     <div className="text-left">
                       <span className="block text-[9px] uppercase font-black text-gray-400 tracking-wider">மொத்த தள்ளுபடி விலை</span>
@@ -384,7 +436,7 @@ export default function ProductListingPage({ products, categories = [], isLoadin
             </div>
 
             {/* --- BOTTOM STICKY FLOATING ACTION BUTTONS ROW (IMMERSIVE MOBILE EXPERIENCE) --- */}
-            <div className="pt-3 border-t bg-white w-full left-0 right-0 bottom-0 mt-auto">
+            <div className="sticky bottom-0 bg-white z-20 border-t pt-3 pb-3 -mx-4 -mb-4 px-4 sm:-mx-6 sm:-mb-6 sm:px-6 sm:pb-5 sm:rounded-b-[24px] shadow-[0_-8px_24px_rgba(15,23,42,0.06)] mt-auto select-none">
               <div className="grid grid-cols-2 gap-3 pb-2 sm:pb-0">
                 <button
                   disabled={selectedProduct.status === 'Sold_Out'}
@@ -416,20 +468,21 @@ export default function ProductListingPage({ products, categories = [], isLoadin
       {/* LIGHTBOX FULL SCREEN ZOOM ACCENT MODAL */}
       {isZoomOpen && selectedProduct && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-95 flex flex-col items-center justify-center p-4" onClick={() => setIsZoomOpen(false)}>
-          <button onClick={() => setIsZoomOpen(false)} className="absolute top-4 right-4 p-2 bg-white bg-opacity-10 text-white rounded-full hover:bg-opacity-20 transition">
+          <button onClick={() => setIsZoomOpen(false)} aria-label="நெருக்கமான (Close)" className="absolute top-4 right-4 p-2 bg-white bg-opacity-10 text-white rounded-full hover:bg-opacity-20 transition">
             <X className="w-6 h-6" />
           </button>
           
           <div className="w-full max-w-lg aspect-square bg-gray-900 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-800">
-            {selectedProduct.image_url && !imgErrors[selectedProduct._id || selectedProduct.id] ? (
+            {getProductImageGallery(selectedProduct)[activeImgIndex]?.url && !imgErrors[`${selectedProduct._id || selectedProduct.id}-${activeImgIndex}-zoom`] ? (
               <img 
-                src={`${BASE_URL}${selectedProduct.image_url}`} 
+                src={`${BASE_URL}${getProductImageGallery(selectedProduct)[activeImgIndex].url}`} 
                 alt={selectedProduct.title} 
                 className="w-full h-full object-contain" 
+                onError={() => setImgErrors(prev => ({ ...prev, [`${selectedProduct._id || selectedProduct.id}-${activeImgIndex}-zoom`]: true }))}
               />
             ) : (
               <span className="text-[120px] filter drop-shadow-md">
-                {getProductImageGallery(selectedProduct)[activeImgIndex].view}
+                {getProductImageGallery(selectedProduct)[activeImgIndex]?.view || '👗'}
               </span>
             )}
           </div>

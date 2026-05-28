@@ -3,7 +3,7 @@ import { Sparkles, Scissors, Upload, Ruler, Phone, CheckCircle, ZoomIn, ChevronD
 import { customGownPortfolio } from '../mockData';
 import { fetchPortfolioItems } from '../services/api';
 
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const BASE_URL = process.env.REACT_APP_API_URL || `${window.location.protocol}//${window.location.hostname}:5000`;
 
 export default function CustomGownPage() {
   const [filterType, setFilterType] = useState('ALL');
@@ -123,32 +123,44 @@ export default function CustomGownPage() {
           </div>
         </div>
 
-        {/* GALLERY CARDS GRID LOOP (Enlarged Card Contents) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
+        {/* GALLERY CARDS GRID LOOP (Extra Large Card Layout) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {filteredItems.map((item) => (
-            <div key={item._id || item.id} className="bg-white rounded-2xl border-2 border-gray-100 p-4 flex flex-col justify-between hover:shadow-lg hover:border-teal-200 transition duration-200">
-              
-              {/* Large Stage Image Box */}
-              <div className="aspect-square bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center text-5xl shadow-inner relative overflow-hidden">
+            <div
+              key={item._id || item.id}
+              className="bg-white rounded-3xl border-2 border-gray-100 overflow-hidden flex flex-col hover:shadow-2xl hover:border-teal-300 transition-all duration-300 cursor-pointer group"
+              onClick={() => setZoomImg({ image_url: item.image_url, title: item.title, desc: item.desc, type: item.type })}
+            >
+              {/* Extra Large Portrait Image Stage */}
+              <div className="relative aspect-[3/4] bg-gray-50 overflow-hidden">
                 {item.image_url ? (
-                  <img src={`${BASE_URL}${item.image_url}`} alt={item.title} className="w-full h-full object-cover" />
+                  <img
+                    src={`${BASE_URL}${item.image_url}`}
+                    alt={item.title}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
                 ) : (
-                  <span>{item.type === 'SIMPLE' ? '👗' : '👸'}</span>
+                  <div className="w-full h-full flex items-center justify-center text-8xl bg-gradient-to-br from-teal-50 to-emerald-50">
+                    <span>{item.type === 'SIMPLE' ? '👗' : '👸'}</span>
+                  </div>
                 )}
+                {/* Hover tap-to-zoom overlay */}
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
+                  <span className="text-white text-xs font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black bg-opacity-50 px-4 py-2 rounded-full">
+                    👆 தொட்டு பெரிதாக்கு
+                  </span>
+                </div>
               </div>
-              
-              {/* Wording Content Info Block (Enlarged with increased line-height spacing) */}
-              <div className="mt-4 space-y-1.5 flex-1 flex flex-col justify-end">
-                {/* Item title shifted to strong text-sm font-black */}
-                <h4 className="text-xs sm:text-sm font-black text-gray-900 leading-snug capitalize tracking-tight">
+
+              {/* Info Block */}
+              <div className="p-4 space-y-1">
+                <h4 className="text-sm sm:text-base font-black text-gray-900 leading-snug capitalize tracking-tight">
                   {item.title}
                 </h4>
-                {/* Subtitle description wording shifted from text-[10px] to text-xs */}
-                <p className="text-[11px] sm:text-xs font-bold text-gray-500 leading-relaxed">
+                <p className="text-xs sm:text-sm font-semibold text-teal-700 leading-relaxed">
                   {item.desc}
                 </p>
               </div>
-
             </div>
           ))}
         </div>
@@ -380,30 +392,46 @@ export default function CustomGownPage() {
 
       </div>
 
-      {/* --- ZOOM MODAL CONTROLLER OVERLAY --- */}
+      {/* --- FULLSCREEN ZOOM LIGHTBOX OVERLAY --- */}
       {zoomImg && (
-        <div 
-          className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center p-4 animate-fade-in" 
+        <div
+          className="fixed inset-0 z-50 bg-black bg-opacity-95 flex flex-col items-center justify-center p-4"
           onClick={() => setZoomImg(null)}
         >
-          <div 
-            className="bg-white p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl relative"
+          {/* Close button */}
+          <button
+            onClick={() => setZoomImg(null)}
+            className="absolute top-4 right-4 p-2.5 bg-white bg-opacity-10 hover:bg-opacity-25 text-white rounded-full transition z-10"
+            aria-label="Close"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+
+          {/* Large Image Frame */}
+          <div
+            className="w-full max-w-lg max-h-[80vh] bg-gray-900 rounded-3xl overflow-hidden border border-gray-700 shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
-            <div className="text-6xl p-4 bg-teal-50 rounded-xl w-24 h-24 flex items-center justify-center mx-auto border border-teal-100">
-              {zoomImg.img}
-            </div>
-            <div>
-              <h4 className="text-sm font-black text-gray-900">{zoomImg.title}</h4>
-              <p className="text-xs text-gray-400 mt-1 leading-relaxed">{zoomImg.desc}</p>
-            </div>
-            <button 
-              onClick={() => setZoomImg(null)} 
-              className="mt-2 w-full py-2 bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 rounded-xl transition"
-            >
-              Close Preview
-            </button>
+            {zoomImg.image_url ? (
+              <img
+                src={`${BASE_URL}${zoomImg.image_url}`}
+                alt={zoomImg.title}
+                className="w-full h-full object-contain max-h-[80vh]"
+              />
+            ) : (
+              <div className="w-full h-64 flex items-center justify-center text-9xl">
+                {zoomImg.type === 'SIMPLE' ? '👗' : '👸'}
+              </div>
+            )}
           </div>
+
+          {/* Title & Desc */}
+          <div className="mt-5 text-center space-y-1" onClick={e => e.stopPropagation()}>
+            <h4 className="text-white font-black text-base tracking-wide capitalize">{zoomImg.title}</h4>
+            {zoomImg.desc && <p className="text-gray-400 text-sm font-semibold">{zoomImg.desc}</p>}
+          </div>
+
+          <p className="text-gray-600 text-[11px] mt-4 font-medium">📲 திரையை தொட்டு மூடுக (Tap anywhere to close)</p>
         </div>
       )}
 

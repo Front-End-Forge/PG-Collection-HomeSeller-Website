@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // Set up the base connector dynamically pointing to your live Render server or local computer
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const BASE_URL = process.env.REACT_APP_API_URL || `${window.location.protocol}//${window.location.hostname}:5000`;
 const API_URL = `${BASE_URL}/api/admin`;
 
 export const fetchLiveProducts = async () => {
@@ -25,6 +25,38 @@ export const uploadNewDress = async (formData) => {
         return response.data;
     } catch (error) {
         console.error("Database upload processing failed:", error);
+        return { success: false, message: error.response?.data?.message || "Server connection error" };
+    }
+};
+
+export const updateProductStatus = async (productId, status) => {
+    try {
+        const response = await axios.patch(`${API_URL}/products/${productId}/status`, { status });
+        return response.data;
+    } catch (error) {
+        console.error("Error updating product status:", error);
+        return { success: false, message: error.response?.data?.message || "Server connection error" };
+    }
+};
+
+export const deleteProduct = async (productId) => {
+    try {
+        const response = await axios.delete(`${API_URL}/products/${productId}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error deleting product:", error);
+        return { success: false, message: error.response?.data?.message || "Server connection error" };
+    }
+};
+
+export const updateProduct = async (productId, formData) => {
+    try {
+        const response = await axios.put(`${API_URL}/products/${productId}`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error updating product:", error);
         return { success: false, message: error.response?.data?.message || "Server connection error" };
     }
 };

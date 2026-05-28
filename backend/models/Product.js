@@ -15,7 +15,11 @@ const ProductSchema = new mongoose.Schema({
         type: Number, 
         default: 1, 
         max: 1 // Prevents quantity from exceeding single-piece limits
-    }
+    },
+    fabricType: { type: String, default: '' },
+    stitchingQuality: { type: String, default: '' },
+    guaranteeNote: { type: String, default: '' },
+    additional_images: { type: [String], default: [] }
 }, { timestamps: true });
 
 const MongooseProduct = mongoose.model('Product', ProductSchema);
@@ -44,16 +48,38 @@ class MockProduct {
         this.image_url = data.image_url;
         this.status = data.status || 'Available';
         this.stock = data.stock || 1;
-        this._id = `mock_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-        this.createdAt = new Date();
-        this.updatedAt = new Date();
+        this.fabricType = data.fabricType || '';
+        this.stitchingQuality = data.stitchingQuality || '';
+        this.guaranteeNote = data.guaranteeNote || '';
+        this.additional_images = data.additional_images || [];
+        this._id = data._id || `mock_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        this.createdAt = data.createdAt || new Date();
+        this.updatedAt = data.updatedAt || new Date();
     }
 
     async save() {
         ensureDbFile();
         const raw = fs.readFileSync(dbFilePath, 'utf8');
         const db = JSON.parse(raw);
-        db.push(this);
+        const index = db.findIndex(p => p._id === this._id);
+        if (index !== -1) {
+            db[index] = {
+                ...db[index],
+                title: this.title,
+                size: this.size,
+                price: this.price,
+                image_url: this.image_url,
+                status: this.status,
+                stock: this.stock,
+                fabricType: this.fabricType,
+                stitchingQuality: this.stitchingQuality,
+                guaranteeNote: this.guaranteeNote,
+                additional_images: this.additional_images,
+                updatedAt: new Date()
+            };
+        } else {
+            db.push(this);
+        }
         fs.writeFileSync(dbFilePath, JSON.stringify(db, null, 2));
         return this;
     }
@@ -76,6 +102,30 @@ class MockProduct {
             }
         };
         return query;
+    }
+
+    static async findById(id) {
+        ensureDbFile();
+        const raw = fs.readFileSync(dbFilePath, 'utf8');
+        const db = JSON.parse(raw);
+        const product = db.find(p => p._id === id);
+        if (!product) return null;
+        const instance = new MockProduct(product);
+        instance._id = product._id;
+        instance.createdAt = product.createdAt;
+        instance.updatedAt = product.updatedAt;
+        return instance;
+    }
+
+    static async findByIdAndDelete(id) {
+        ensureDbFile();
+        const raw = fs.readFileSync(dbFilePath, 'utf8');
+        let db = JSON.parse(raw);
+        const index = db.findIndex(p => p._id === id);
+        if (index === -1) return null;
+        const removed = db.splice(index, 1)[0];
+        fs.writeFileSync(dbFilePath, JSON.stringify(db, null, 2));
+        return removed;
     }
 
     static async findByIdAndUpdate(id, update, options) {
@@ -137,6 +187,22 @@ class ProductProxy {
             return MockProduct.find(...args);
         } else {
             return MongooseProduct.find(...args);
+        }
+    }
+
+    static findById(...args) {
+        if (global.useMockDb) {
+            return MockProduct.findById(...args);
+        } else {
+            return MongooseProduct.findById(...args);
+        }
+    }
+
+    static findByIdAndDelete(...args) {
+        if (global.useMockDb) {
+            return MockProduct.findByIdAndDelete(...args);
+        } else {
+            return MongooseProduct.findByIdAndDelete(...args);
         }
     }
 

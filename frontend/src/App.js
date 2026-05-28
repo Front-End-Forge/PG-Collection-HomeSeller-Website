@@ -8,13 +8,13 @@ import UPICheckout from './components/UPICheckout';
 import AuthModal from './components/AuthModal';
 import Footer from './components/Footer';
 import { sampleCategories, aariCourseDetails } from './mockData';
-import { fetchLiveProducts, fetchCategories, fetchHeroSlides } from './services/api';
+import { fetchLiveProducts, fetchCategories } from './services/api';
 import ProductListingPage from './components/ProductListingPage';
 import CustomGownPage from './components/CustomGownPage';
 import AariClassPage from './components/AariClassPage';
-import { BookOpen, CheckCircle, Scissors, Phone, Lock, Eye, EyeOff, Sparkles, GraduationCap, ArrowLeft } from 'lucide-react';
+import { BookOpen, CheckCircle, Scissors, Phone, Lock, Eye, EyeOff, Sparkles, GraduationCap, ArrowLeft, ArrowRight } from 'lucide-react';
 
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const BASE_URL = process.env.REACT_APP_API_URL || `${window.location.protocol}//${window.location.hostname}:5000`;
 
 function App() {
   const navigate = useNavigate();
@@ -78,52 +78,53 @@ function App() {
     ]);
   };
 
-  // --- HERO CAROUSEL ROTATION STATE & CATEGORY IMAGES OVERRIDES STATE ---
   const [activeSlide, setActiveSlide] = useState(0);
-  
-  const defaultSlides = [
+
+  const carouselSlides = [
     {
-      title: "புதிய நைட்டிகள் & டாப்ஸ் வருகை!",
-      desc: "ஒவ்வொரு ஞாயிறும் மாலை 6 மணிக்கு. ஒரு டிசைனில் ஒரு ஆடை மட்டுமே!",
-      badge: "முக்கிய அறிவிப்பு",
-      btnText: "இப்போதே வாங்க",
+      title: "சிறுவர்களுக்கான ட்ரெண்டி ஆடைகள்!",
+      desc: "மென்மையான காட்டன் துணியில் சொகுசான தையல் வடிவமைப்பு.",
+      badge: "புதிய வரவு (New)",
+      btnText: "BUY NOW",
+      btnClass: "from-amber-400 via-orange-400 to-yellow-500 text-slate-950 shadow-orange-500/30 hover:shadow-orange-500/50",
       tab: "shop",
-      image_url: ""
+      image_url: "/slide1.jpg"
     },
     {
-      title: "பிரீமியம் டிசைனர் கவுன்கள்",
-      desc: "உங்களது சரியான உடல் அளவிற்கு ஏற்ப கச்சிதமாக தைத்து தரப்படும்.",
-      badge: "தையல் கலை",
-      btnText: "ஆர்டர் செய்ய",
+      title: "அழகிய குழந்தைகள் பட்டு பாவாடை!",
+      desc: "விசேஷ தினங்களை மேலும் சிறப்பாக்க உங்களது விருப்பத்திற்கேற்ப தைத்து தரப்படும்.",
+      badge: "டிசைனர் கவுன்",
+      btnText: "ORDER NOW",
+      btnClass: "from-pink-500 via-rose-450 to-purple-600 text-white shadow-rose-500/30 hover:shadow-rose-500/50",
       tab: "stitching",
-      image_url: ""
+      image_url: "/slide2.jpg"
     },
     {
-      title: "தொழில்முறை ஆரி எம்பிராய்டரி வகுப்பு",
-      desc: "முன்பதிவு செய்ய மற்றும் புதிய பேட்ச் விவரங்களை வாட்ஸ்அப்பில் கேட்கவும்.",
+      title: "தொழில்முறை ஆரி எம்பிராய்டரி!",
+      desc: "அழகின் நுணுக்கம் ஆரியில் அரிய கலை. புதிய பேட்ச் வகுப்புகளுக்கு முன்பதிவு செய்ய தொடர்பு கொள்ளவும்.",
       badge: "அட்மிஷன் ஓபன்",
-      btnText: "விவரம் கேட்க",
+      btnText: "BOOK NOW",
+      extraNote: "(Only 15 seats are Welcomed)",
+      btnClass: "from-sky-400 via-teal-400 to-emerald-500 text-slate-950 shadow-teal-500/30 hover:shadow-teal-500/50",
       tab: "classes",
-      image_url: ""
+      image_url: "/slide3.jpg"
     }
   ];
 
-  const [carouselSlides, setCarouselSlides] = useState(defaultSlides);
-  const [categories, setCategories] = useState(sampleCategories);
-
-  // Auto-rotate the promo slides every 4 seconds
   useEffect(() => {
-    if (currentTab !== 'shop' || carouselSlides.length === 0) return;
+    if (currentTab !== 'shop') return;
     const interval = setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % carouselSlides.length);
-    }, 4000);
+    }, 4500);
     return () => clearInterval(interval);
-  }, [currentTab, carouselSlides.length]);
+  }, [currentTab]);
 
-  // Trigger automated data loading when the page spins up
+  const [categories, setCategories] = useState(sampleCategories);
+
+  // Trigger automated data loading when the page spins up and set up a 4-second background refresh sync
   useEffect(() => {
-    const getStoreInventory = async () => {
-      setIsLoading(true);
+    const getStoreInventory = async (showLoading = true) => {
+      if (showLoading) setIsLoading(true);
       
       // Load products
       const prodResult = await fetchLiveProducts();
@@ -147,19 +148,18 @@ function App() {
         console.error("Error fetching dynamic categories:", err);
       }
 
-      // Load dynamic slides
-      try {
-        const slideResult = await fetchHeroSlides();
-        if (slideResult.success && slideResult.data && slideResult.data.length > 0) {
-          setCarouselSlides(slideResult.data);
-        }
-      } catch (err) {
-        console.error("Error fetching dynamic slides:", err);
-      }
-
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     };
-    getStoreInventory();
+
+    // Initial first-paint load
+    getStoreInventory(true);
+
+    // Setup quiet 4-second short-polling for real-time storefront synchronization
+    const pollInterval = setInterval(() => {
+      getStoreInventory(false);
+    }, 4000);
+
+    return () => clearInterval(pollInterval);
   }, []);
 
   // Change this to any 4-digit code the seller prefers
@@ -318,68 +318,105 @@ function App() {
                           className="flex flex-col items-center gap-1.5 cursor-pointer flex-shrink-0 snap-center group"
                         >
                           <div className="w-16 h-16 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-md overflow-hidden group-hover:border-teal-500 transition-all duration-200">
-                            <img 
-                              src={`${BASE_URL}${cat.image_url || ''}`} 
-                              alt={cat.name} 
-                              className="w-full h-full object-cover transform group-hover:scale-105 transition"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                e.target.parentNode.innerHTML = `<span class="text-2xl">${cat.icon || '👗'}</span>`;
-                              }}
-                            />
+                            {cat.image_url ? (
+                              <img 
+                                src={`${BASE_URL}${cat.image_url}`} 
+                                alt={cat.name} 
+                                className="w-full h-full object-cover transform group-hover:scale-105 transition"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  if (!e.target.parentNode.querySelector('.fallback-icon')) {
+                                    const fallbackSpan = document.createElement('span');
+                                    fallbackSpan.className = 'text-2xl fallback-icon';
+                                    fallbackSpan.innerText = cat.icon || '👗';
+                                    e.target.parentNode.appendChild(fallbackSpan);
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <span className="text-2xl">{cat.icon || '👗'}</span>
+                            )}
                           </div>
                           <span className="text-xs font-black text-gray-600 group-hover:text-teal-700 transition-colors">{cat.name}</span>
                         </div>
                       ))}
                     </section>
                   </div>
-
-                  {/* --- STEP 4: DESIGN-OPTIMIZED TWO-COLUMN HERO CAROUSEL BANNER --- */}
-                  {/* --- STEP 4: DESIGN-OPTIMIZED TWO-COLUMN HERO CAROUSEL BANNER --- */}
-                  <section 
-                    className="bg-gradient-to-br from-sky-950 via-slate-950 to-black text-white rounded-3xl p-8 md:p-10 shadow-lg relative overflow-hidden min-h-[200px] flex flex-row items-center justify-between gap-8 border border-sky-900 my-6"
-                    style={carouselSlides[activeSlide]?.image_url ? {
-                      backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.7)), url(${BASE_URL}${carouselSlides[activeSlide].image_url})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center'
-                    } : {}}
-                  >
-                    
-                    {/* Left Side Layout: Maximized Content Width to prevent awkward text wrapping on desktop */}
-                    <div className="max-w-2xl space-y-3 relative z-10 text-left flex-1">
-                      <span className="bg-sky-900 bg-opacity-70 text-yellow-300 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-md border border-sky-800 inline-block font-sans">
-                        ⚡ {carouselSlides[activeSlide]?.badge}
-                      </span>
-                      <h2 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight transition-transform duration-300">
-                        {carouselSlides[activeSlide]?.title}
-                      </h2>
-                      <p className="text-sky-100 text-xs sm:text-sm font-semibold opacity-90 tracking-wide max-w-xl">
-                        {carouselSlides[activeSlide]?.desc}
-                      </p>
-                      <div className="pt-2">
-                        <button 
-                          onClick={() => setCurrentTab(carouselSlides[activeSlide]?.tab || 'shop')}
-                          className="px-6 py-2.5 bg-sky-400 hover:bg-sky-500 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all transform hover:scale-105 active:scale-95 uppercase tracking-wider"
+                  {/* --- STEP 4: FRESHLY CREATED PREMIUM RESPONSIVE HERO BANNER CAROUSEL --- */}
+                  <div className="relative overflow-hidden shadow-2xl rounded-3xl min-h-[360px] sm:min-h-[420px] md:min-h-[480px] my-6 border border-sky-950 group">
+                    {carouselSlides.map((slide, idx) => {
+                      const isActive = activeSlide === idx;
+                      return (
+                        <div 
+                          key={idx}
+                          className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out flex flex-row items-center justify-between p-10 sm:p-12 md:p-16 gap-8 ${isActive ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'}`}
+                          style={{
+                            backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.2)), url(${slide.image_url})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center'
+                          }}
                         >
-                          {carouselSlides[activeSlide]?.btnText}
-                        </button>
-                      </div>
-                    </div>
+                          {/* Left Side Content Overlay */}
+                          <div className={`max-w-2xl space-y-4 text-left transition-all duration-1000 transform ${isActive ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'}`}>
+                            <span className="bg-sky-500 bg-opacity-25 text-yellow-300 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-md border border-sky-400 inline-block font-sans">
+                              ⚡ {slide.badge}
+                            </span>
+                            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight text-white drop-shadow-md">
+                              {slide.title}
+                            </h2>
+                            <p className="text-sky-100 text-xs sm:text-sm font-semibold opacity-95 tracking-wide max-w-xl drop-shadow-sm">
+                              {slide.desc}
+                            </p>
+                            <div className="pt-2 flex flex-col sm:flex-row sm:items-center gap-3">
+                              <button 
+                                onClick={() => setCurrentTab(slide.tab)}
+                                className={`px-7 py-3.5 bg-gradient-to-r ${slide.btnClass} font-black text-xs sm:text-sm rounded-xl shadow-xl transition-all transform hover:scale-105 active:scale-95 uppercase tracking-widest flex items-center justify-center gap-2 duration-200 group/btn w-fit`}
+                              >
+                                <span>{slide.btnText}</span>
+                                <ArrowRight className="w-4 h-4 transform group-hover/btn:translate-x-1 transition-transform duration-200 flex-shrink-0" />
+                              </button>
+                              {slide.extraNote && (
+                                <span className="text-yellow-300 text-xs sm:text-sm font-bold bg-slate-950/70 border border-teal-500/30 px-3 py-1.5 rounded-lg select-none backdrop-blur-sm shadow-sm animate-pulse-subtle w-fit leading-none">
+                                  {slide.extraNote}
+                                </span>
+                              )}
+                            </div>
+                          </div>
 
-                    {/* Right Side Layout: Pinned Icon Container keeps its dimensions perfectly */}
-                    <div className="relative z-10 w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 bg-white bg-opacity-5 rounded-2xl border border-white border-opacity-10 flex items-center justify-center text-5xl shadow-inner backdrop-blur-sm hidden sm:flex select-none">
-                      {carouselSlides[activeSlide]?.tab === 'shop' && '👚'}
-                      {carouselSlides[activeSlide]?.tab === 'stitching' && '💃'}
-                      {carouselSlides[activeSlide]?.tab === 'classes' && '🪡'}
-                    </div>
+                        </div>
+                      );
+                    })}
 
-                    {/* Sliding Pagination Dots Indicator Tracks */}
-                    <div className="absolute right-8 bottom-4 flex gap-2 z-10">
+                    {/* Manual Navigation Controls (Arrows) */}
+                    <button 
+                      onClick={() => setActiveSlide((prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length)}
+                      aria-label="முந்தைய ஸ்லைடு (Previous Slide)"
+                      className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-slate-900 bg-opacity-50 hover:bg-opacity-80 border border-white border-opacity-10 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ‹
+                    </button>
+                    <button 
+                      onClick={() => setActiveSlide((prev) => (prev + 1) % carouselSlides.length)}
+                      aria-label="அடுத்த ஸ்லைடு (Next Slide)"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-slate-900 bg-opacity-50 hover:bg-opacity-80 border border-white border-opacity-10 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ›
+                    </button>
+
+                    {/* Page Pagination Dots Indicators */}
+                    <div className="absolute right-8 bottom-6 flex gap-2.5 z-20">
                       {carouselSlides.map((_, idx) => (
-                        <div key={idx} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${activeSlide === idx ? 'bg-yellow-400 w-4' : 'bg-sky-900'}`}></div>
+                        <button 
+                          key={idx} 
+                          onClick={() => setActiveSlide(idx)}
+                          aria-label={`ஸ்லைடுக்குச் செல்ல (Go to slide) ${idx + 1}`}
+                          className={`w-2 h-2 rounded-full transition-all duration-300 ${activeSlide === idx ? 'bg-yellow-400 w-6' : 'bg-sky-900 hover:bg-sky-700'}`}
+                        />
                       ))}
                     </div>
-                  </section>
+                  </div>
+
+
 
                   {/* --- CRITICAL ARCHITECTURE UPDATE: LOAD TRUE PLP INTERFACES --- */}
                   <ProductListingPage 
@@ -425,6 +462,7 @@ function App() {
                         <img 
                           src={`${BASE_URL}/uploads/stitching-portfolio-banner.jpg`} // உங்கள் லைவ் பேக்கெண்ட் இமேஜ் பாத்
                           alt="Custom stitched ethnic long frock gown sample by PG Collection" 
+                          loading="lazy"
                           className="w-full h-full object-cover object-top transform group-hover:scale-105 transition-transform duration-500"
                           onError={(e) => {
                             // சேஃப்டி ஃபால்பேக்: இமேஜ் லோடாவதில் சிக்கல் இருந்தால் எமோஜி காண்பிக்கும்
@@ -469,6 +507,7 @@ function App() {
                         <img 
                           src="/aari-peacock-embroidery.png" // Static path mapped in React public folder
                           alt="Beautiful Aari peacock embroidery sleeve design sample by PG Collection" 
+                          loading="lazy"
                           className="w-full h-full object-cover object-center transform group-hover:scale-105 transition-transform duration-500"
                           onError={(e) => {
                             // சேஃப்டி ஃபால்பேக்: இமேஜ் லோடாவதில் சிக்கல் இருந்தால் எமோஜி காண்பிக்கும்

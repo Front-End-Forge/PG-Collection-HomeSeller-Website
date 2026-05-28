@@ -7,3 +7,18 @@ frontend/node_modules/
 frontend/build/
 backend/node_modules/
 backend/.env
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DYNAMIC RUNTIME DATA — Do NOT commit these to git.
+# These are generated at runtime by the admin when they upload images or
+# add products. They should never be part of the source code.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# All admin-uploaded dress images, category photos, hero banners, portfolio pics
+backend/uploads/
+
+# Local JSON mock database files (auto-created when MongoDB is unavailable)
+backend/data/products.json
+backend/data/categories.json
+backend/data/portfolio.json
+backend/data/heroBanners.json

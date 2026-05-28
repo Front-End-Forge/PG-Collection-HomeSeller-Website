@@ -1,10 +1,10 @@
 {
-  "name": "My Website",
-  "short_name": "Website",
+  "name": "PG Collection Boutique & Aari Academy",
+  "short_name": "PG Collection",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#0ea5e9",
-  "background_color": "#0ea5e9",
+  "theme_color": "#0f766e",
+  "background_color": "#0f766e",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",

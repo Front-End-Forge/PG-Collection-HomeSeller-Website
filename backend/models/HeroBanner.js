@@ -2,10 +2,10 @@
 const mongoose = require('mongoose');
 
 const HeroBannerSchema = new mongoose.Schema({
-    title: { type: String, required: true },
-    desc: { type: String, required: true },
-    badge: { type: String, default: 'முக்கிய அறிவிப்பு' },
-    btnText: { type: String, default: 'இப்போதே வாங்க' },
+    title: { type: String, default: '' },
+    desc: { type: String, default: '' },
+    badge: { type: String, default: '' },
+    btnText: { type: String, default: '' },
     tab: { type: String, enum: ['shop', 'stitching', 'classes'], default: 'shop' },
     image_url: { type: String, default: '' }
 }, { timestamps: true });
